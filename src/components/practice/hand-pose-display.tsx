@@ -3,12 +3,18 @@
 /**
  * HandPoseDisplay
  *
- * Shows a realistic human hand SVG that:
- * 1. When given a `targetSign` — renders the reference pose for that sign
- * 2. When given `liveCurls` — finds the closest library pose and crossfades to it
- * 3. Animates smoothly between poses using CSS transitions on opacity
+ * Reference display for a verified ASL sign.
  *
- * No emojis. No cartoon hands. No 3D avatars.
+ * Reference path (targetSign provided):
+ *   Renders DIRECTLY from sign.targetCurls + sign.referenceSpread + sign.wristTilt.
+ *   No nearest-neighbour lookup. No approximation. The exact pose from the
+ *   sign definition — which is itself sourced from Lifeprint / ASL University.
+ *
+ * Live-mirror path (liveCurls provided, no targetSign):
+ *   Finds the closest library pose by euclidean distance and renders it,
+ *   throttled to 200 ms for performance.
+ *
+ * Both paths use the same RealisticHandSVG renderer.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -19,27 +25,24 @@ import type { HandPose } from "@/lib/gesture/hand-pose-library";
 import type { SignDefinition } from "@/lib/gesture/sign-definitions";
 
 interface HandPoseDisplayProps {
-  /** Target sign to demonstrate */
+  /** Target sign — renders its verified ASL reference pose directly */
   targetSign?: SignDefinition | null;
-  /** Live curls from MediaPipe — will find closest library match */
+  /** Live curls from MediaPipe — shows closest library match (mirror mode) */
   liveCurls?: [number, number, number, number, number] | null;
-  /** Live spread from MediaPipe */
+  /** Live spread from MediaPipe (mirror mode) */
   liveSpread?: [number, number, number, number, number] | null;
-  /** Highlight these fingers in red */
+  /** Highlight these fingers in red (incorrect finger feedback) */
   errorFingers?: string[];
-  /** Width of the display */
   width?: number;
   height?: number;
-  /** Show the pose name label (debug mode) */
+  /** Show the pose source label (debug) */
   showLabel?: boolean;
   animated?: boolean;
   className?: string;
 }
 
-function signToPose(sign: SignDefinition): HandPose {
-  // Map the sign's target curl to the closest library pose
-  return findClosestPose(sign.targetCurls);
-}
+// Default neutral pose for when nothing is provided
+const NEUTRAL_POSE: HandPose = HAND_POSE_LIBRARY[0];
 
 export function HandPoseDisplay({
   targetSign,
@@ -52,60 +55,85 @@ export function HandPoseDisplay({
   animated = true,
   className,
 }: HandPoseDisplayProps) {
-  const [currentPose, setCurrentPose] = useState<HandPose>(() =>
-    targetSign ? signToPose(targetSign) : HAND_POSE_LIBRARY[0]
-  );
-  // poseKey increments on every meaningful pose change to drive AnimatePresence
+  // poseKey drives AnimatePresence — increments on any meaningful change
   const [poseKey, setPoseKey] = useState(0);
-  const lastSignId = useRef<string>("");
-  const lastPoseId = useRef<string>("");
+  const lastSignId  = useRef<string>("");
+  const lastPoseId  = useRef<string>("");
+
+  // Live-mirror state (only used when liveCurls is present without a targetSign)
+  const [mirrorPose, setMirrorPose] = useState<HandPose>(NEUTRAL_POSE);
   const liveThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
-  // When targetSign changes — switch even if the underlying library pose is the
-  // same shape (e.g. "hello" and "thank-you" share the same curl vector).
-  // Key on targetSign.id, not on the matched pose id.
+  // When targetSign changes — bump poseKey to trigger crossfade
   useEffect(() => {
     if (!targetSign) return;
     if (targetSign.id === lastSignId.current) return;
     lastSignId.current = targetSign.id;
-    const pose = signToPose(targetSign);
-    lastPoseId.current = pose.id;
-    setCurrentPose(pose);
     setPoseKey((k) => k + 1);
   }, [targetSign]);
 
-  // When liveCurls updates — throttle to every 200ms, find closest pose
+  // Live-mirror: throttled nearest-neighbour lookup (only when no targetSign)
   useEffect(() => {
-    if (!liveCurls) return;
-    if (liveThrottleRef.current) return; // skip if throttled
+    if (targetSign || !liveCurls) return;
+    if (liveThrottleRef.current) return;
 
     liveThrottleRef.current = setTimeout(() => {
       liveThrottleRef.current = null;
       const pose = findClosestPose(liveCurls);
       if (pose.id !== lastPoseId.current) {
         lastPoseId.current = pose.id;
-        setCurrentPose(pose);
+        setMirrorPose(pose);
         setPoseKey((k) => k + 1);
       }
     }, 200);
-  }, [liveCurls]);
+  }, [liveCurls, targetSign]);
 
-  // Use live curls directly when available (real-time mirror),
-  // otherwise use the matched library pose curls.
-  const renderCurls = liveCurls ?? currentPose.curls;
-  const renderSpread = liveSpread ?? currentPose.spread;
+  // ── Resolve what to render ─────────────────────────────────────────────────
+  //
+  // Reference mode (targetSign present):
+  //   curls  = sign.targetCurls          (verified ASL handshape)
+  //   spread = sign.referenceSpread      (verified ASL spread)
+  //   tilt   = sign.wristTilt            (verified ASL wrist angle)
+  //
+  // Live-mirror mode (liveCurls present, no targetSign):
+  //   curls  = liveCurls (direct from MediaPipe)
+  //   spread = liveSpread ?? mirrorPose.spread
+  //   tilt   = mirrorPose.wristTilt
+  //
+  // Fallback (nothing provided): neutral open-palm library pose
+
+  let renderCurls:  [number, number, number, number, number];
+  let renderSpread: [number, number, number, number, number];
+  let renderTilt:   number;
+  let labelText:    string;
+
+  if (targetSign) {
+    renderCurls  = targetSign.targetCurls;
+    renderSpread = targetSign.referenceSpread;
+    renderTilt   = targetSign.wristTilt;
+    labelText    = targetSign.id;
+  } else if (liveCurls) {
+    renderCurls  = liveCurls;
+    renderSpread = liveSpread ?? mirrorPose.spread;
+    renderTilt   = mirrorPose.wristTilt;
+    labelText    = mirrorPose.id;
+  } else {
+    renderCurls  = NEUTRAL_POSE.curls;
+    renderSpread = NEUTRAL_POSE.spread;
+    renderTilt   = NEUTRAL_POSE.wristTilt;
+    labelText    = NEUTRAL_POSE.id;
+  }
 
   return (
     <div
       className={`relative flex items-center justify-center overflow-hidden rounded-2xl ${className ?? ""}`}
       style={{
         width, height,
-        // Studio-style background: neutral dark-grey gradient mimicking a sweep backdrop
         background: "radial-gradient(ellipse at 50% 30%, #2a2535 0%, #181520 55%, #0e0c14 100%)",
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4)",
       }}
     >
-      {/* Studio key-light rim — upper-left warm catch-light */}
+      {/* Studio key-light rim */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -113,15 +141,13 @@ export function HandPoseDisplay({
           background: "radial-gradient(ellipse at 30% 30%, rgba(255,220,180,0.07) 0%, transparent 70%)",
         }}
       />
-      {/* Floor reflection — very subtle bottom glow */}
+      {/* Floor reflection */}
       <div
         className="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none"
-        style={{
-          background: "linear-gradient(to top, rgba(200,140,90,0.06) 0%, transparent 100%)",
-        }}
+        style={{ background: "linear-gradient(to top, rgba(200,140,90,0.06) 0%, transparent 100%)" }}
       />
 
-      {/* Animated SVG hand */}
+      {/* Hand */}
       <AnimatePresence mode="wait">
         <motion.div
           key={poseKey}
@@ -132,9 +158,9 @@ export function HandPoseDisplay({
           className="relative z-10"
         >
           <RealisticHandSVG
-            curls={renderCurls as [number, number, number, number, number]}
-            spread={renderSpread as [number, number, number, number, number]}
-            wristTilt={currentPose.wristTilt}
+            curls={renderCurls}
+            spread={renderSpread}
+            wristTilt={renderTilt}
             errorFingers={errorFingers}
             width={width}
             height={height}
@@ -142,7 +168,7 @@ export function HandPoseDisplay({
         </motion.div>
       </AnimatePresence>
 
-      {/* Error finger overlay labels */}
+      {/* Error finger labels */}
       {errorFingers.length > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -162,8 +188,8 @@ export function HandPoseDisplay({
 
       {/* Debug label */}
       {showLabel && (
-        <div className="absolute top-1 left-2 text-[9px] text-white/20 font-mono">
-          {currentPose.id}
+        <div className="absolute top-1 left-2 text-[9px] text-white/25 font-mono">
+          {labelText}
         </div>
       )}
     </div>
