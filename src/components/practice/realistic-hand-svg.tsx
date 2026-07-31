@@ -260,13 +260,19 @@ export function RealisticHandSVG({
   const vw = 280;
   const vh = 340;
 
+  // Serialize arrays to strings so useMemo detects value changes correctly
+  // (array references passed as props are not stable across renders)
+  const curlsKey   = curls.join(",");
+  const spreadKey  = spread.join(",");
+  const errKey     = errorFingers.join(",");
+
   const fingers = useMemo(() => {
     return FINGER_CONFIGS.map((cfg, i) => {
       const spreadX = (spread[i] - 0.2) * MAX_SPREAD_PX * (i < 2 ? -1 : 1) * (i === 0 ? 2 : 1);
-      return buildFingerPhalanges(cfg, curls[i], spreadX, errorSet);
+      return buildFingerPhalanges(cfg, curls[i], spreadX, new Set(errorFingers));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [curls, spread, errorFingers]);
+  }, [curlsKey, spreadKey, errKey]);
 
   return (
     <svg

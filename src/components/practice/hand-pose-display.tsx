@@ -52,20 +52,26 @@ export function HandPoseDisplay({
   animated = true,
   className,
 }: HandPoseDisplayProps) {
-  const [currentPose, setCurrentPose] = useState<HandPose>(HAND_POSE_LIBRARY[0]);
+  const [currentPose, setCurrentPose] = useState<HandPose>(() =>
+    targetSign ? signToPose(targetSign) : HAND_POSE_LIBRARY[0]
+  );
+  // poseKey increments on every meaningful pose change to drive AnimatePresence
   const [poseKey, setPoseKey] = useState(0);
+  const lastSignId = useRef<string>("");
   const lastPoseId = useRef<string>("");
   const liveThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
-  // When targetSign changes — immediately switch to the reference pose
+  // When targetSign changes — switch even if the underlying library pose is the
+  // same shape (e.g. "hello" and "thank-you" share the same curl vector).
+  // Key on targetSign.id, not on the matched pose id.
   useEffect(() => {
     if (!targetSign) return;
+    if (targetSign.id === lastSignId.current) return;
+    lastSignId.current = targetSign.id;
     const pose = signToPose(targetSign);
-    if (pose.id !== lastPoseId.current) {
-      lastPoseId.current = pose.id;
-      setCurrentPose(pose);
-      setPoseKey((k) => k + 1);
-    }
+    lastPoseId.current = pose.id;
+    setCurrentPose(pose);
+    setPoseKey((k) => k + 1);
   }, [targetSign]);
 
   // When liveCurls updates — throttle to every 200ms, find closest pose
@@ -84,9 +90,8 @@ export function HandPoseDisplay({
     }, 200);
   }, [liveCurls]);
 
-  // Determine the actual curls/spread to render
-  // If we have live curls, blend them slightly with the matched library pose
-  // for a smoother look
+  // Use live curls directly when available (real-time mirror),
+  // otherwise use the matched library pose curls.
   const renderCurls = liveCurls ?? currentPose.curls;
   const renderSpread = liveSpread ?? currentPose.spread;
 
