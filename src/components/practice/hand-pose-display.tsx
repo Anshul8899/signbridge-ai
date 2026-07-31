@@ -97,14 +97,27 @@ export function HandPoseDisplay({
 
   return (
     <div
-      className={`relative flex items-center justify-center ${className ?? ""}`}
-      style={{ width, height }}
+      className={`relative flex items-center justify-center overflow-hidden rounded-2xl ${className ?? ""}`}
+      style={{
+        width, height,
+        // Studio-style background: neutral dark-grey gradient mimicking a sweep backdrop
+        background: "radial-gradient(ellipse at 50% 30%, #2a2535 0%, #181520 55%, #0e0c14 100%)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4)",
+      }}
     >
-      {/* Subtle radial background glow */}
+      {/* Studio key-light rim — upper-left warm catch-light */}
       <div
-        className="absolute inset-0 rounded-2xl"
+        className="absolute pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at 50% 60%, rgba(168,85,247,0.08) 0%, transparent 70%)",
+          top: -20, left: -20, width: "55%", height: "55%",
+          background: "radial-gradient(ellipse at 30% 30%, rgba(255,220,180,0.07) 0%, transparent 70%)",
+        }}
+      />
+      {/* Floor reflection — very subtle bottom glow */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none"
+        style={{
+          background: "linear-gradient(to top, rgba(200,140,90,0.06) 0%, transparent 100%)",
         }}
       />
 
@@ -112,10 +125,10 @@ export function HandPoseDisplay({
       <AnimatePresence mode="wait">
         <motion.div
           key={poseKey}
-          initial={animated ? { opacity: 0, scale: 0.96 } : false}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={animated ? { opacity: 0, scale: 0.96 } : undefined}
-          transition={{ duration: 0.28, ease: "easeInOut" }}
+          initial={animated ? { opacity: 0, scale: 0.95, y: 6 } : false}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={animated ? { opacity: 0, scale: 0.95, y: -6 } : undefined}
+          transition={{ duration: 0.32, ease: [0.25, 0.1, 0.25, 1] }}
           className="relative z-10"
         >
           <RealisticHandSVG
