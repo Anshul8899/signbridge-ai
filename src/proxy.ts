@@ -1,8 +1,20 @@
 import { updateSession } from "@/lib/supabase/middleware";
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  return await updateSession(request);
+  // Demo mode: if the cookie is set, skip Supabase auth entirely
+  const isDemo = request.cookies.get("sb-demo-mode")?.value === "1";
+  const isProtectedPath = [
+    "/dashboard", "/learn", "/practice", "/quiz",
+    "/settings", "/progress", "/ai-tutor",
+    "/text-to-sign", "/speech-to-sign", "/achievements", "/community",
+  ].some((p) => request.nextUrl.pathname.startsWith(p));
+
+  if (isDemo && isProtectedPath) {
+    return NextResponse.next();
+  }
+
+  return updateSession(request);
 }
 
 export const config = {
