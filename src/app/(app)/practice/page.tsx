@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { WebcamGestureOverlay } from "@/components/practice/webcam-gesture-overlay";
 import { AccuracyDisplay } from "@/components/practice/accuracy-display";
-import { SignAvatar3D } from "@/components/practice/sign-avatar-3d";
+import { HandPoseDisplay } from "@/components/practice/hand-pose-display";
 import { useGestureRecognition } from "@/hooks/useGestureRecognition";
 import { useSpeechFeedback, getFeedbackText } from "@/hooks/useSpeechFeedback";
 import { SIGN_DEFINITIONS, SIGN_CATEGORIES } from "@/lib/gesture/sign-definitions";
@@ -234,27 +234,30 @@ export default function PracticeModePage() {
               </div>
 
               <div className="text-center">
-                <div className="text-5xl mb-2">{currentSign.emoji}</div>
                 <h2 className="text-white font-bold text-2xl">{currentSign.word}</h2>
                 <p className="text-white/60 text-sm mt-1">{currentSign.description}</p>
               </div>
 
-              {/* 3D Avatar */}
+              {/* Realistic hand reference */}
               <AnimatePresence>
                 {showAvatar && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
+                    className="flex justify-center"
                   >
-                    <SignAvatar3D
-                      sign={currentSign}
+                    <HandPoseDisplay
+                      targetSign={currentSign}
+                      liveCurls={result.handDetected ? (result.features?.curls as [number,number,number,number,number] ?? null) : null}
                       errorFingers={result.errorFingers}
                       animated
-                      className="w-full h-52 rounded-xl overflow-hidden bg-black/30"
+                      width={220}
+                      height={260}
+                      className="rounded-xl overflow-hidden bg-black/30"
                     />
-                    <p className="text-white/30 text-xs text-center mt-1">
-                      Drag to rotate · Red = incorrect position
+                    <p className="text-white/30 text-xs text-center mt-1 absolute bottom-1 left-0 right-0">
+                      Red fingers = adjust position
                     </p>
                   </motion.div>
                 )}
@@ -351,7 +354,6 @@ export default function PracticeModePage() {
                           : "hover:bg-white/5"
                       }`}
                     >
-                      <span className="text-lg">{sign.emoji}</span>
                       <span className="text-white/70 text-sm flex-1">{sign.word}</span>
                       {reps > 0 && (
                         <span className="text-xs text-purple-400 font-medium">{reps}×</span>

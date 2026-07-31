@@ -6,11 +6,12 @@ import { Mic, MicOff, Play, Wand2, Volume2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { HandPoseDisplay } from "@/components/practice/hand-pose-display";
+import { SIGN_DEFINITIONS } from "@/lib/gesture/sign-definitions";
 
 interface SignWord {
   word: string;
   description: string;
-  emoji: string;
 }
 
 export default function SpeechToSignPage() {
@@ -70,7 +71,7 @@ export default function SpeechToSignPage() {
       setCurrentIndex(0);
     } catch {
       const words = text.split(/\s+/).filter(Boolean);
-      setSigns(words.map((word) => ({ word, description: `Sign for "${word}"`, emoji: "🤟" })));
+      setSigns(words.map((word) => ({ word, description: `Sign for "${word}"` })));
     } finally {
       setLoading(false);
     }
@@ -172,8 +173,15 @@ export default function SpeechToSignPage() {
                     transition={{ type: "spring", stiffness: 200 }}
                     className="text-center"
                   >
-                    <div className="text-8xl mb-2">{signs[currentIndex]?.emoji}</div>
-                    <div className="text-2xl font-bold text-white">{signs[currentIndex]?.word}</div>
+                    <HandPoseDisplay
+                      targetSign={SIGN_DEFINITIONS.find(
+                        (s) => s.word.toLowerCase() === signs[currentIndex]?.word?.toLowerCase()
+                      ) ?? null}
+                      animated
+                      width={180}
+                      height={220}
+                    />
+                    <div className="text-xl font-bold text-white mt-2">{signs[currentIndex]?.word}</div>
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -197,7 +205,6 @@ export default function SpeechToSignPage() {
                         : "glass text-white/60 hover:text-white"
                     }`}
                   >
-                    <span>{sign.emoji}</span>
                     <span>{sign.word}</span>
                   </button>
                 ))}

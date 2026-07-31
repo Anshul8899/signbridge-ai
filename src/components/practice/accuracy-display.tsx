@@ -17,7 +17,7 @@ interface AccuracyDisplayProps {
 }
 
 const FINGER_NAMES = ["Thumb", "Index", "Middle", "Ring", "Pinky"];
-const FINGER_EMOJIS = ["👍", "☝️", "🖕", "💍", "🤙"];
+const FINGER_ICONS = ["T", "I", "M", "R", "P"];
 
 export function AccuracyDisplay({
   accuracy,
@@ -71,7 +71,7 @@ export function AccuracyDisplay({
             const hasError = errorSet.has(name);
             return (
               <div key={name} className="flex items-center gap-3">
-                <div className="w-5 text-center text-sm">{FINGER_EMOJIS[i]}</div>
+                <div className="w-5 h-5 rounded text-center text-[10px] font-bold text-white/50 bg-white/10 flex items-center justify-center flex-shrink-0">{FINGER_ICONS[i]}</div>
                 <div className="flex-1">
                   <div className="flex justify-between mb-1">
                     <span className="text-white/70 text-xs">{name}</span>

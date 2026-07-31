@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { WebcamGestureOverlay } from "@/components/practice/webcam-gesture-overlay";
-import { SignAvatar3D } from "@/components/practice/sign-avatar-3d";
+import { HandPoseDisplay } from "@/components/practice/hand-pose-display";
 import { useGestureRecognition } from "@/hooks/useGestureRecognition";
 import { useSpeechFeedback } from "@/hooks/useSpeechFeedback";
 import { SIGN_DEFINITIONS } from "@/lib/gesture/sign-definitions";
@@ -113,19 +113,22 @@ function GestureRound({ sign, onSuccess, onSkip, roundIndex, totalRounds, speakE
       </div>
 
       <div className="text-center">
-        <div className="text-5xl mb-2">{sign.emoji}</div>
         <h2 className="text-white text-2xl font-bold">Sign: {sign.word}</h2>
         <p className="text-white/50 text-sm mt-1">{sign.instruction}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 3D reference */}
-        <SignAvatar3D
-          sign={sign}
-          errorFingers={result.errorFingers}
-          animated
-          className="w-full h-48 rounded-xl overflow-hidden bg-black/40 border border-white/10"
-        />
+        {/* Realistic hand reference */}
+        <div className="flex justify-center">
+          <HandPoseDisplay
+            targetSign={sign}
+            errorFingers={result.errorFingers}
+            animated
+            width={200}
+            height={240}
+            className="rounded-xl overflow-hidden bg-black/40 border border-white/10"
+          />
+        </div>
 
         {/* Webcam */}
         <div className="space-y-3">

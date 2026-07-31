@@ -6,11 +6,12 @@ import { Type, ArrowRight, Play, Pause, RotateCcw, Zap, Wand2 } from "lucide-rea
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HandPoseDisplay } from "@/components/practice/hand-pose-display";
+import { SIGN_DEFINITIONS } from "@/lib/gesture/sign-definitions";
 
 interface SignWord {
   word: string;
   description: string;
-  emoji: string;
 }
 
 const EXAMPLE_SENTENCES = [
@@ -20,14 +21,6 @@ const EXAMPLE_SENTENCES = [
   "Good morning, how are you?",
   "Water please, I am thirsty",
 ];
-
-const signEmojis: Record<string, string> = {
-  hello: "👋", welcome: "🤗", "thank": "🙏", you: "👆", learning: "📚",
-  sign: "🤟", language: "💬", need: "🙋", help: "🆘", please: "🙏",
-  good: "👍", morning: "🌅", how: "🤔", are: "🤷", water: "💧",
-  "i": "👈", am: "✌️", thirsty: "😮", love: "❤️", bridge: "🌉",
-  ai: "🤖", breaking: "💥", barriers: "🚧",
-};
 
 export default function TextToSignPage() {
   const [text, setText] = useState("");
@@ -58,7 +51,6 @@ export default function TextToSignPage() {
       setSigns(words.map((word) => ({
         word,
         description: `Sign for "${word}"`,
-        emoji: signEmojis[word.toLowerCase()] ?? "🤟",
       })));
     } finally {
       setLoading(false);
@@ -136,26 +128,29 @@ export default function TextToSignPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Current sign hero */}
           <Card className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border-blue-500/20 mb-4">
-            <CardContent className="p-8">
+            <CardContent className="p-6">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentIndex}
-                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  initial={{ opacity: 0, scale: 0.92, y: 16 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="text-center"
+                  exit={{ opacity: 0, scale: 0.92, y: -16 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="flex flex-col items-center"
                 >
-                  <div
-                    className="text-8xl mb-4"
-                    style={{ filter: "drop-shadow(0 0 30px rgba(59,130,246,0.8))" }}
-                  >
-                    {signs[currentIndex]?.emoji ?? "🤟"}
-                  </div>
-                  <h3 className="text-3xl font-bold text-white mb-2">
+                  {/* Realistic hand reference */}
+                  <HandPoseDisplay
+                    targetSign={SIGN_DEFINITIONS.find(
+                      (s) => s.word.toLowerCase() === signs[currentIndex]?.word?.toLowerCase()
+                    ) ?? null}
+                    animated
+                    width={200}
+                    height={240}
+                  />
+                  <h3 className="text-2xl font-bold text-white mt-3">
                     {signs[currentIndex]?.word}
                   </h3>
-                  <p className="text-white/60 text-sm">
+                  <p className="text-white/60 text-sm mt-1">
                     {signs[currentIndex]?.description}
                   </p>
                 </motion.div>
@@ -201,7 +196,7 @@ export default function TextToSignPage() {
           </Card>
 
           {/* All Signs Grid */}
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+          <div className="flex flex-wrap gap-2">
             {signs.map((sign, i) => (
               <motion.button
                 key={i}
@@ -209,14 +204,13 @@ export default function TextToSignPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => setCurrentIndex(i)}
-                className={`flex flex-col items-center p-2 rounded-xl transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-sm transition-all ${
                   i === currentIndex
-                    ? "bg-blue-500/30 border border-blue-500/40"
-                    : "glass hover:bg-white/10"
+                    ? "bg-blue-500/30 border border-blue-500/40 text-white"
+                    : "glass text-white/60 hover:text-white"
                 }`}
               >
-                <span className="text-2xl">{sign.emoji}</span>
-                <span className="text-white/60 text-xs mt-1 truncate w-full text-center">{sign.word}</span>
+                {sign.word}
               </motion.button>
             ))}
           </div>
