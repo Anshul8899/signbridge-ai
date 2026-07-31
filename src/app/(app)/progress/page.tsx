@@ -3,14 +3,28 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  BarChart3, TrendingUp, Clock, Target, Calendar, Zap,
-  BookOpen, CheckCircle, Award, Activity, ArrowUpRight
+  BarChart3, TrendingUp, Clock, Target, Zap,
+  BookOpen, CheckCircle, Activity,
+  Hash, Hand, AlertTriangle, HeartPulse, GraduationCap,
+  Briefcase, Plane, MessageSquare, Trophy, Home,
+  type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { LESSONS } from "@/lib/lessons";
 import { getLevelFromXP, getXPProgress, getXPForNextLevel, formatXP } from "@/lib/utils";
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Foundations: Hash,
+  "Daily Life": Home,
+  Safety: AlertTriangle,
+  Health: HeartPulse,
+  Education: GraduationCap,
+  Professional: Briefcase,
+  Travel: Plane,
+  Communication: MessageSquare,
+  Advanced: Trophy,
+};
 
 const MOCK_ACTIVITY = Array.from({ length: 7 }, (_, i) => ({
   day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
@@ -153,7 +167,7 @@ export default function ProgressPage() {
                 const progress = i < 3 ? 100 : i === 3 ? 60 : i === 4 ? 30 : 0;
                 return (
                   <div key={lesson.id} className="flex items-center gap-3 p-3 glass rounded-xl">
-                    <span className="text-2xl">{lesson.thumbnail}</span>
+                    {(() => { const Icon = CATEGORY_ICONS[lesson.category] ?? BookOpen; return <Icon className="w-6 h-6 text-purple-400 flex-shrink-0" />; })()}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-white text-sm font-medium truncate">{lesson.title}</span>

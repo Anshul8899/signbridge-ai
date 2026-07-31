@@ -64,6 +64,8 @@ export default function SettingsPage() {
   const supabase = createClient();
 
   const handleSignOut = async () => {
+    // Clear demo cookie if present
+    document.cookie = "sb-demo-mode=; path=/; max-age=0";
     await supabase.auth.signOut();
     router.push("/");
     toast({ title: "Signed out", variant: "success" });
